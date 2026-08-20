@@ -1,0 +1,9 @@
+3. Write the full forms and one-line use of GitHub, Slack, Jira, IDE, API.
+
+        | Term       | Full Form / Meaning                                                     | Use                                                                               |
+        | ---------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+        | **GitHub** | GitHub is a platform for hosting and collaborating on Git repositories. | Used to store, manage, share, and collaborate on source code.                     |
+        | **Slack**  | Slack is a team communication and collaboration platform.               | Used by teams for messaging, file sharing, and communication.                     |
+        | **Jira**   | Jira is a project and issue-tracking software developed by Atlassian.   | Used to manage tasks, bugs, projects, and software development workflows.         |
+        | **IDE**    | **Integrated Development Environment**                                  | Used by developers to write, run, debug, and manage program code.                 |
+        | **API**    | **Application Programming Interface**                                   | Allows different software applications or systems to communicate with each other. |
