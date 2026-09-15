@@ -1,0 +1,29 @@
+2. Create hello.c and Print the Message
+
+
+#include <stdio.h>
+
+int main()
+{
+    printf("Hello, Instagram World!");
+
+    return 0;
+}
+
+
+
+3. Identify Header, Main Function and Return Statement
+
+// Header
+#include <stdio.h>
+
+// Main Function
+int main()
+{
+    printf("Hello, Instagram World!");
+
+    // Return Statement
+    return 0;
+}
+
+
