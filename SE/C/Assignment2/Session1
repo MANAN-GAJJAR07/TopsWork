@@ -1,1 +1,105 @@
+1. What is a Program?
 
+  A program is a set of instructions written in a programming language that tells a computer or mobile device what to do.
+  A program can perform tasks such as calculating something, storing information, displaying data, or processing a user's request.
+  For example, when I use Zomato, the app uses programs to show restaurants, display menus, take my order, process payment, and provide order status.
+
+
+2. Three Popular Programming Languages
+
+| Programming Language | Usually Compiled / Interpreted | Simple Explanation                                                                     |
+| -------------------- | ------------------------------ | -------------------------------------------------------------------------------------- |
+| **Java**             | Compiled + Interpreted         | Java code is compiled into bytecode, which is then executed by the JVM.                |
+| **Python**           | Interpreted                    | Python code is generally executed by the Python interpreter.                           |
+| **JavaScript**       | Interpreted / JIT Compiled     | JavaScript engines execute it using interpretation and Just-In-Time (JIT) compilation. |
+
+
+3. Flowchart – Booking a Movie Ticket on BookMyShow
+
+             ┌─────────────┐
+             │    START    │
+             └──────┬──────┘
+                    ↓
+          ┌───────────────────┐
+          │ Open BookMyShow   │
+          │       App         │
+          └─────────┬─────────┘
+                    ↓
+          ┌───────────────────┐
+          │ Select City       │
+          └─────────┬─────────┘
+                    ↓
+          ┌───────────────────┐
+          │ Select Movie      │
+          └─────────┬─────────┘
+                    ↓
+          ┌───────────────────┐
+          │ Select Date &     │
+          │ Show Time         │
+          └─────────┬─────────┘
+                    ↓
+          ┌───────────────────┐
+          │ Select Seats      │
+          └─────────┬─────────┘
+                    ↓
+             ┌─────────────┐
+             │ Seats       │
+             │ Available?  │
+             └──────┬──────┘
+                Yes │  │ No
+                    │  └──────────────┐
+                    ↓                 ↓
+          ┌───────────────────┐   ┌──────────────┐
+          │ Proceed to        │   │ Select other │
+          │ Payment           │   │ seats/time   │
+          └─────────┬─────────┘   └──────┬───────┘
+                    ↓                    │
+          ┌───────────────────┐          │
+          │ Make Payment      │←─────────┘
+          └─────────┬─────────┘
+                    ↓
+             ┌─────────────┐
+             │ Payment     │
+             │ Successful? │
+             └──────┬──────┘
+                Yes │  │ No
+                    │  └──────────────┐
+                    ↓                 ↓
+          ┌───────────────────┐   ┌──────────────┐
+          │ Booking           │   │ Try Payment  │
+          │ Confirmed         │   │ Again        │
+          └─────────┬─────────┘   └──────┬───────┘
+                    ↓                    │
+          ┌───────────────────┐          │
+          │ Receive Booking   │←─────────┘
+          │ Confirmation      │
+          └─────────┬─────────┘
+                    ↓
+             ┌─────────────┐
+             │     END     │
+             └─────────────┘
+
+
+
+4. Algorithm – Ordering Food on Swiggy
+
+Algorithm: Order Food on Swiggy
+
+1)Start.
+2)Open the Swiggy app.
+3)Select or enter your delivery location.
+4)Search for the restaurant or food item you want.
+5)Select a restaurant.
+6)View the available food items.
+7)Select the required food items.
+8)Add the selected items to the cart.
+9)Open the cart and check the order details.
+10)Confirm the delivery address.
+11)Select a suitable payment method.
+12)Check the total order amount.
+13)Click on Place Order / Pay.
+14)Complete the payment.
+15)Check whether the payment was successful.
+16)If the payment is successful, the order is confirmed.
+17)Receive the order confirmation and order details.
+18)End.
