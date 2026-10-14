@@ -1,0 +1,558 @@
+Section A — Conceptual answers
+S1. Database constraints and data integrity
+Constraints help maintain accurate and consistent data.
+1.	PRIMARY KEY: restaurant_id in the restaurants table uniquely identifies every restaurant. Without it, duplicate or ambiguous restaurant records could occur.
+2.	NOT NULL: name in the restaurants table must have a value. Without this constraint, a restaurant could be stored without a name.
+3.	FOREIGN KEY: restaurant_id in menu_items references restaurants.restaurant_id. Without it, menu items could refer to restaurants that do not exist, creating orphan records.
+S2. Importance of the WHERE clause
+The WHERE clause restricts which records are modified or deleted.
+UPDATE orders
+SET status = 'Cancelled'
+WHERE order_date < NOW() - INTERVAL 7 DAY
+  AND status = 'Pending';
+DELETE FROM menu_items
+WHERE availability = 'Unavailable'
+  AND restaurant_id IN (
+      SELECT restaurant_id
+      FROM restaurants
+      WHERE status = 'Closed'
+  );
+Without a proper WHERE clause, an UPDATE could change every order, and a DELETE could remove every menu item. Always verify the target records with a SELECT before running destructive statements.
+Assumption: The examples use status and availability columns as described by the scenario.
+S3. Aggregate revenue reporting
+Use SUM(), AVG(), COUNT(), GROUP BY, and HAVING.
+SELECT
+    restaurant_id,
+    SUM(total_amount) AS total_revenue,
+    AVG(total_amount) AS average_order_value,
+    COUNT(order_id) AS total_orders
+FROM orders
+WHERE YEAR(order_date) = YEAR(CURDATE())
+  AND MONTH(order_date) = MONTH(CURDATE())
+GROUP BY restaurant_id
+HAVING COUNT(order_id) > 20;
+WHERE filters individual rows before grouping. HAVING filters groups after aggregate calculations, which is why it is needed for COUNT(order_id) > 20.
+S4. INNER JOIN versus LEFT JOIN
+Use a LEFT JOIN because the page must display every order, even if its restaurant record no longer exists.
+SELECT
+    o.order_id,
+    r.name AS restaurant_name,
+    o.total_amount
+FROM orders o
+LEFT JOIN restaurants r
+    ON o.restaurant_id = r.restaurant_id;
+•	INNER JOIN returns only orders with matching restaurant records.
+•	LEFT JOIN returns every order. If no restaurant matches, restaurant_name is NULL.
+S5. Benefits and limitations of a VIEW
+A view named top_restaurants can present restaurant names, total orders, and average ratings without exposing unnecessary ID columns.
+Benefits:
+•	Simplifies complex queries and improves consistency.
+•	Restricts access to selected columns, helping protect underlying data.
+Two limitations:
+1.	A view does not automatically store a separate copy of its data; results generally reflect the underlying tables.
+2.	Complex views involving aggregation and joins may not support direct INSERT, UPDATE, or DELETE operations.
+S6. Transactions and error handling
+A transaction should wrap the wallet deduction and payment-record insertion together.
+•	COMMIT permanently saves both operations.
+•	ROLLBACK undoes the transaction if either operation fails.
+•	SAVEPOINT creates a marker to which the transaction can partially roll back.
+
+
+-- =========================================================
+-- SECTION B - TASK 1: RESTAURANT DATABASE
+-- =========================================================
+CREATE DATABASE IF NOT EXISTS foodapp_db;
+USE foodapp_db;
+
+CREATE TABLE IF NOT EXISTS restaurants (
+    restaurant_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(80),
+    cuisine_type VARCHAR(80),
+    rating DECIMAL(3,1)
+);
+
+INSERT INTO restaurants (name, city, cuisine_type, rating) VALUES
+('Spice Villa', 'Ahmedabad', 'Indian', 4.7),
+('Green Bowl', 'Surat', 'Healthy', 4.3),
+('Pizza Corner', 'Rajkot', 'Italian', 4.1),
+('Wok Express', 'Ahmedabad', 'Chinese', 4.4),
+('South Treat', 'Vadodara', 'South Indian', 4.2),
+('Royal Thali', 'Surat', 'Gujarati', 4.5);
+
+UPDATE restaurants
+SET rating = 4.8
+WHERE name = 'Spice Villa' AND city = 'Ahmedabad';
+
+DELETE FROM restaurants
+WHERE name = 'Pizza Corner' AND city = 'Rajkot';
+
+SELECT * FROM restaurants
+ORDER BY rating DESC;
+
+-- =========================================================
+-- SECTION B - TASK 2 AND TASK 4: ORDERS, REVENUE, WALLET
+-- =========================================================
+USE foodapp_db;
+
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL,
+    wallet_balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    CHECK (wallet_balance >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    restaurant_id INT NOT NULL,
+    customer_name VARCHAR(100),
+    total_amount DECIMAL(10,2) NOT NULL,
+    order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    customer_id INT NULL,
+    CONSTRAINT fk_orders_restaurant
+        FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    CONSTRAINT fk_orders_customer
+        FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    CHECK (total_amount >= 0)
+);
+
+-- Sample customers for Task 4
+INSERT INTO customers (customer_id, customer_name, wallet_balance) VALUES
+(1, 'Aarav Patel', 5000.00),
+(2, 'Diya Shah', 1200.00),
+(3, 'Kabir Mehta', 300.00)
+ON DUPLICATE KEY UPDATE
+customer_name = VALUES(customer_name);
+
+-- At least 12 orders across at least 4 restaurants.
+-- IDs 1,2,4,5,6 refer to the restaurants created in Task 1.
+INSERT INTO orders (restaurant_id, customer_name, total_amount, order_date) VALUES
+(1, 'Aarav Patel', 1250.00, '2026-10-01 12:00:00'),
+(2, 'Diya Shah', 850.00, '2026-10-02 13:10:00'),
+(4, 'Kabir Mehta', 1750.00, '2026-10-03 19:00:00'),
+(5, 'Aarav Patel', 650.00, '2026-10-04 11:30:00'),
+(6, 'Diya Shah', 2200.00, '2026-10-05 20:15:00'),
+(1, 'Kabir Mehta', 1800.00, '2026-10-06 14:20:00'),
+(2, 'Aarav Patel', 1450.00, '2026-10-07 13:45:00'),
+(4, 'Diya Shah', 2600.00, '2026-10-08 21:00:00'),
+(5, 'Kabir Mehta', 950.00, '2026-10-09 12:30:00'),
+(6, 'Aarav Patel', 3100.00, '2026-10-10 20:30:00'),
+(1, 'Diya Shah', 2400.00, '2026-10-11 18:40:00'),
+(4, 'Aarav Patel', 1900.00, '2026-10-12 19:25:00');
+
+-- Total revenue and average order value per restaurant
+SELECT r.restaurant_id, r.name,
+       SUM(o.total_amount) AS total_revenue,
+       AVG(o.total_amount) AS average_order_value,
+       COUNT(o.order_id) AS total_orders
+FROM restaurants r
+JOIN orders o ON o.restaurant_id = r.restaurant_id
+GROUP BY r.restaurant_id, r.name
+ORDER BY total_revenue DESC;
+
+-- Restaurants with total revenue exceeding Rs 5,000
+SELECT r.restaurant_id, r.name,
+       SUM(o.total_amount) AS total_revenue
+FROM restaurants r
+JOIN orders o ON o.restaurant_id = r.restaurant_id
+GROUP BY r.restaurant_id, r.name
+HAVING SUM(o.total_amount) > 5000;
+
+-- Five most recent orders
+SELECT * FROM orders
+ORDER BY order_date DESC
+LIMIT 5;
+
+-- =========================================================
+-- SECTION B - TASK 4: place_order PROCEDURE
+-- MySQL transaction handling with rollback on errors/insufficient funds
+-- =========================================================
+DROP PROCEDURE IF EXISTS place_order;
+DELIMITER $$
+CREATE PROCEDURE place_order(
+    IN p_customer_id INT,
+    IN p_restaurant_id INT,
+    IN p_amount DECIMAL(10,2)
+)
+BEGIN
+    DECLARE v_balance DECIMAL(10,2);
+    DECLARE v_customer_name VARCHAR(100);
+    DECLARE v_customer_found INT DEFAULT 1;
+    DECLARE v_restaurant_found INT DEFAULT 1;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Order amount must be greater than zero';
+    END IF;
+
+    SELECT COUNT(*) INTO v_customer_found
+    FROM customers WHERE customer_id = p_customer_id;
+
+    IF v_customer_found = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Customer does not exist';
+    END IF;
+
+    SELECT COUNT(*) INTO v_restaurant_found
+    FROM restaurants WHERE restaurant_id = p_restaurant_id;
+
+    IF v_restaurant_found = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Restaurant does not exist';
+    END IF;
+
+    -- Lock the customer row to prevent concurrent spending against the same balance.
+    SELECT wallet_balance, customer_name
+      INTO v_balance, v_customer_name
+    FROM customers
+    WHERE customer_id = p_customer_id
+    FOR UPDATE;
+
+    IF v_balance < p_amount THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Insufficient wallet balance; order cancelled';
+    END IF;
+
+    UPDATE customers
+    SET wallet_balance = wallet_balance - p_amount
+    WHERE customer_id = p_customer_id;
+
+    INSERT INTO orders (restaurant_id, customer_name, total_amount, order_date, customer_id)
+    VALUES (p_restaurant_id, v_customer_name, p_amount, NOW(), p_customer_id);
+
+    COMMIT;
+    SELECT 'Order placed successfully' AS result,
+           p_customer_id AS customer_id,
+           p_amount AS amount_charged;
+END$$
+DELIMITER ;
+
+-- Valid test: customer 1 has Rs 5,000 (run once for a clean test)
+CALL place_order(1, 1, 500.00);
+SELECT customer_id, customer_name, wallet_balance
+FROM customers WHERE customer_id = 1;
+SELECT * FROM orders WHERE customer_id = 1 ORDER BY order_id DESC LIMIT 1;
+
+-- Insufficient-balance test: customer 3 has Rs 300, so Rs 900 should fail.
+-- In Workbench, run this separately; it should return the SIGNAL error and
+-- leave the wallet balance and orders table unchanged.
+CALL place_order(3, 1, 900.00);
+SELECT customer_id, wallet_balance FROM customers WHERE customer_id = 3;
+
+-- =========================================================
+-- SECTION B - TASK 3: MENU JOIN AND VIEW
+-- Separate database because this task requests a different restaurants schema.
+-- =========================================================
+CREATE DATABASE IF NOT EXISTS foodapp_menu_db;
+USE foodapp_menu_db;
+
+CREATE TABLE restaurants (
+    restaurant_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(80)
+);
+
+CREATE TABLE menu_items (
+    item_id INT PRIMARY KEY,
+    restaurant_id INT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    category VARCHAR(50),
+    CONSTRAINT fk_menu_restaurant
+        FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    CHECK (price >= 0)
+);
+
+INSERT INTO restaurants VALUES
+(1, 'Spice Villa', 'Ahmedabad'),
+(2, 'Green Bowl', 'Surat'),
+(3, 'Wok Express', 'Ahmedabad'),
+(4, 'South Treat', 'Vadodara'),
+(5, 'Royal Thali', 'Surat');
+
+INSERT INTO menu_items VALUES
+(101, 1, 'Paneer Tikka', 280.00, 'Starter'),
+(102, 1, 'Gujarati Thali', 350.00, 'Main Course'),
+(103, 1, 'Masala Chaas', 60.00, 'Beverage'),
+(104, 2, 'Quinoa Salad', 240.00, 'Healthy'),
+(105, 2, 'Fruit Bowl', 180.00, 'Dessert'),
+(106, 3, 'Hakka Noodles', 220.00, 'Main Course'),
+(107, 3, 'Spring Rolls', 160.00, 'Starter'),
+(108, 3, 'Manchurian', 210.00, 'Starter'),
+(109, 4, 'Masala Dosa', 150.00, 'Main Course'),
+(110, 4, 'Idli Sambhar', 100.00, 'Main Course'),
+(111, 4, 'Filter Coffee', 70.00, 'Beverage'),
+(112, 5, 'Shrikhand', 120.00, 'Dessert');
+
+-- Ensure one restaurant has no menu items as required: Royal Thali (restaurant_id 5)
+DELETE FROM menu_items WHERE item_id = 112;
+
+-- INNER JOIN: restaurants that have menu items
+SELECT r.name AS restaurant_name, m.item_name, m.price
+FROM restaurants r
+INNER JOIN menu_items m ON m.restaurant_id = r.restaurant_id
+ORDER BY r.name, m.item_name;
+
+-- LEFT JOIN: all restaurants, including Royal Thali with NULL item columns
+SELECT r.name AS restaurant_name, m.item_name, m.price
+FROM restaurants r
+LEFT JOIN menu_items m ON m.restaurant_id = r.restaurant_id
+ORDER BY r.name, m.item_name;
+
+CREATE OR REPLACE VIEW restaurant_menu_summary AS
+SELECT r.restaurant_id,
+       r.name AS restaurant_name,
+       COUNT(m.item_id) AS total_menu_items,
+       AVG(m.price) AS average_item_price
+FROM restaurants r
+LEFT JOIN menu_items m ON m.restaurant_id = r.restaurant_id
+GROUP BY r.restaurant_id, r.name;
+
+SELECT * FROM restaurant_menu_summary;
+
+-- =========================================================
+-- SECTION C: FOOD DELIVERY PLATFORM CAPSTONE
+-- =========================================================
+CREATE DATABASE IF NOT EXISTS food_delivery_capstone;
+USE food_delivery_capstone;
+
+CREATE TABLE restaurants (
+    restaurant_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(80) NOT NULL,
+    cuisine_type VARCHAR(80) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE menu_items (
+    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    restaurant_id INT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    CONSTRAINT fk_capstone_menu_restaurant
+        FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    CHECK (price >= 0)
+);
+
+CREATE TABLE orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL,
+    restaurant_id INT NOT NULL,
+    item_id INT NOT NULL,
+    quantity INT NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_capstone_order_restaurant
+        FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    CONSTRAINT fk_capstone_order_item
+        FOREIGN KEY (item_id) REFERENCES menu_items(item_id),
+    CHECK (quantity > 0),
+    CHECK (total_amount >= 0)
+);
+
+CREATE TABLE order_audit (
+    audit_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    restaurant_id INT NOT NULL,
+    action VARCHAR(10) NOT NULL,
+    log_time DATETIME NOT NULL,
+    CONSTRAINT fk_audit_order
+        FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    CONSTRAINT fk_audit_restaurant
+        FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id)
+);
+
+INSERT INTO restaurants (name, city, cuisine_type) VALUES
+('Spice Villa', 'Ahmedabad', 'Indian'),
+('Wok Express', 'Surat', 'Chinese'),
+('South Treat', 'Vadodara', 'South Indian');
+
+INSERT INTO menu_items (restaurant_id, item_name, price, category) VALUES
+(1, 'Paneer Tikka', 280.00, 'Starter'),
+(1, 'Gujarati Thali', 350.00, 'Main Course'),
+(1, 'Masala Chaas', 60.00, 'Beverage'),
+(1, 'Shrikhand', 120.00, 'Dessert'),
+(1, 'Veg Biryani', 240.00, 'Main Course'),
+(2, 'Spring Rolls', 160.00, 'Starter'),
+(2, 'Hakka Noodles', 220.00, 'Main Course'),
+(2, 'Manchurian', 210.00, 'Starter'),
+(2, 'Lemon Soda', 80.00, 'Beverage'),
+(2, 'Ice Cream', 90.00, 'Dessert'),
+(3, 'Idli Sambhar', 100.00, 'Main Course'),
+(3, 'Masala Dosa', 150.00, 'Main Course'),
+(3, 'Filter Coffee', 70.00, 'Beverage'),
+(3, 'Medu Vada', 90.00, 'Starter'),
+(3, 'Kesari', 85.00, 'Dessert');
+
+-- 15 sample orders distributed across all 3 restaurants
+INSERT INTO orders (customer_name, restaurant_id, item_id, quantity, total_amount, order_date) VALUES
+('Aarav Patel', 1, 1, 2, 560.00, '2026-10-01 12:00:00'),
+('Diya Shah', 1, 2, 1, 350.00, '2026-10-02 13:00:00'),
+('Kabir Mehta', 1, 3, 3, 180.00, '2026-10-03 14:00:00'),
+('Mira Desai', 1, 4, 2, 240.00, '2026-10-04 19:00:00'),
+('Aarav Patel', 1, 5, 1, 240.00, '2026-10-05 20:00:00'),
+('Diya Shah', 2, 6, 2, 320.00, '2026-10-06 12:00:00'),
+('Kabir Mehta', 2, 7, 1, 220.00, '2026-10-07 13:00:00'),
+('Mira Desai', 2, 8, 2, 420.00, '2026-10-08 14:00:00'),
+('Aarav Patel', 2, 9, 2, 160.00, '2026-10-09 19:00:00'),
+('Diya Shah', 2, 10, 3, 270.00, '2026-10-10 20:00:00'),
+('Kabir Mehta', 3, 11, 2, 200.00, '2026-10-11 12:00:00'),
+('Mira Desai', 3, 12, 1, 150.00, '2026-10-12 13:00:00'),
+('Aarav Patel', 3, 13, 2, 140.00, '2026-10-13 14:00:00'),
+('Diya Shah', 3, 14, 3, 270.00, '2026-10-14 19:00:00'),
+('Kabir Mehta', 3, 15, 2, 170.00, '2026-10-15 20:00:00');
+
+CREATE OR REPLACE VIEW restaurant_sales_summary AS
+SELECT r.restaurant_id,
+       r.name AS restaurant_name,
+       COUNT(o.order_id) AS total_orders,
+       COALESCE(SUM(o.total_amount), 0.00) AS total_revenue
+FROM restaurants r
+LEFT JOIN orders o ON o.restaurant_id = r.restaurant_id
+GROUP BY r.restaurant_id, r.name;
+
+SELECT * FROM restaurant_sales_summary;
+
+DROP TRIGGER IF EXISTS after_order_insert;
+DELIMITER $$
+CREATE TRIGGER after_order_insert
+AFTER INSERT ON orders
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_audit (order_id, restaurant_id, action, log_time)
+    VALUES (NEW.order_id, NEW.restaurant_id, 'INSERT', NOW());
+END$$
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS add_order;
+DELIMITER $$
+CREATE PROCEDURE add_order(
+    IN p_customer_name VARCHAR(100),
+    IN p_restaurant_id INT,
+    IN p_item_id INT,
+    IN p_quantity INT
+)
+BEGIN
+    DECLARE v_restaurant_count INT DEFAULT 0;
+    DECLARE v_item_restaurant_id INT DEFAULT NULL;
+    DECLARE v_price DECIMAL(10,2);
+    DECLARE v_total DECIMAL(10,2);
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    IF p_customer_name IS NULL OR TRIM(p_customer_name) = '' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Customer name is required';
+    END IF;
+
+    IF p_quantity IS NULL OR p_quantity <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Quantity must be greater than zero';
+    END IF;
+
+    SELECT COUNT(*) INTO v_restaurant_count
+    FROM restaurants WHERE restaurant_id = p_restaurant_id;
+
+    IF v_restaurant_count = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Restaurant does not exist; order not added';
+    END IF;
+
+    SELECT restaurant_id, price
+      INTO v_item_restaurant_id, v_price
+    FROM menu_items
+    WHERE item_id = p_item_id
+    FOR UPDATE;
+
+    IF v_item_restaurant_id IS NULL OR v_item_restaurant_id <> p_restaurant_id THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Menu item does not belong to the selected restaurant';
+    END IF;
+
+    SET v_total = v_price * p_quantity;
+
+    INSERT INTO orders
+        (customer_name, restaurant_id, item_id, quantity, total_amount, order_date)
+    VALUES
+        (p_customer_name, p_restaurant_id, p_item_id, p_quantity, v_total, NOW());
+
+    COMMIT;
+    SELECT 'Order added successfully' AS result, LAST_INSERT_ID() AS order_id,
+           v_total AS total_amount;
+END$$
+DELIMITER ;
+
+-- Test add_order and verify audit trigger
+CALL add_order('Test Customer', 1, 1, 2);
+SELECT * FROM order_audit ORDER BY audit_id DESC LIMIT 5;
+SELECT * FROM restaurant_sales_summary;
+
+-- =========================================================
+-- SECTION D: AI-AUGMENTED MONTHLY RESTAURANT SUMMARY
+-- Procedure accepts restaurant ID and month (1-12).
+-- The corrected version filters to the current year and handles no orders.
+-- =========================================================
+DROP PROCEDURE IF EXISTS GetRestaurantMonthlySummary_AI;
+DELIMITER $$
+CREATE PROCEDURE GetRestaurantMonthlySummary_AI(
+    IN p_restaurant_id INT,
+    IN p_month INT
+)
+BEGIN
+    DECLARE v_total_orders INT DEFAULT 0;
+    DECLARE v_total_revenue DECIMAL(12,2) DEFAULT 0.00;
+    DECLARE v_average_order_value DECIMAL(12,2) DEFAULT 0.00;
+
+    IF p_month < 1 OR p_month > 12 OR p_month IS NULL THEN
+        SELECT 'Invalid month: enter a number from 1 to 12.' AS message;
+    ELSE
+        SELECT COUNT(o.order_id),
+               COALESCE(SUM(o.total_amount), 0.00),
+               COALESCE(AVG(o.total_amount), 0.00)
+        INTO v_total_orders, v_total_revenue, v_average_order_value
+        FROM orders o
+        WHERE o.restaurant_id = p_restaurant_id
+          AND MONTH(o.order_date) = p_month
+          AND YEAR(o.order_date) = YEAR(CURDATE())
+        GROUP BY o.restaurant_id;
+
+        IF v_total_orders = 0 THEN
+            SELECT CONCAT(
+                'No orders found for restaurant ', p_restaurant_id,
+                ' in month ', p_month, ' of ', YEAR(CURDATE()), '.'
+            ) AS message;
+        ELSE
+            SELECT p_restaurant_id AS restaurant_id,
+                   p_month AS month_number,
+                   YEAR(CURDATE()) AS report_year,
+                   v_total_orders AS total_orders,
+                   v_total_revenue AS total_revenue,
+                   v_average_order_value AS average_order_value;
+        END IF;
+    END IF;
+END$$
+DELIMITER ;
+
+-- Two example calls. Change IDs/months to test combinations with and without orders.
+CALL GetRestaurantMonthlySummary_AI(1, 10);
+CALL GetRestaurantMonthlySummary_AI(2, 10);
+CALL GetRestaurantMonthlySummary_AI(999, 10);
+
+-- End of script.
+
+
