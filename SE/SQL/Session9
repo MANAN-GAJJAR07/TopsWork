@@ -1,0 +1,131 @@
+Session 9: Transactions & Error HandlingTrainer Coverage:COMMIT, ROLLBACK, SAVEPOINT.Triggers: use case “Auto update user’s balance after expense entry.”AI Integration: Use ChatGPT to simulate test triggers and rollback scenarios.Pending
+Tasks
+1.
+Create a SQL script to insert a new order into an Orders table, then use COMMIT to save the transaction and verify that the new order persists after reconnecting to the database.
+
+CREATE TABLE Orders (order_id INT PRIMARY KEY, customer_name VARCHAR(100),
+    order_amount DECIMAL(10,2)) ENGINE = InnoDB;
+
+START TRANSACTION;
+INSERT INTO Orders (order_id, customer_name, order_amount)
+VALUES (101, 'Manan', 1500.00);
+COMMIT;
+SELECT * FROM Orders;
+
+2.
+Simulate a Zomato-style food order process: insert two new items into an OrderItems table, then use ROLLBACK to undo the changes before committing. Check that no new items remain in the table after rollback.
+
+CREATE TABLE OrderItems (item_id INT PRIMARY KEY,item_name VARCHAR(100),quantity INT,price DECIMAL(10,2)) ENGINE = InnoDB;
+
+START TRANSACTION;
+INSERT INTO OrderItems VALUES (1, 'Pizza', 1, 299.00);
+INSERT INTO OrderItems VALUES (2, 'Burger', 2, 199.00);
+SELECT * FROM OrderItems;
+ROLLBACK;
+
+SELECT * FROM OrderItems;
+
+3.
+In a Flipkart-like shopping cart scenario, use SAVEPOINT to mark a point after adding a product to the Cart table, add another product, then use ROLLBACK TO SAVEPOINT to undo only the last addition. Show the final contents of the Cart table.
+
+CREATE TABLE Cart (cart_id INT PRIMARY KEY,product_name VARCHAR(100),price DECIMAL(10,2)) ENGINE = InnoDB;
+
+START TRANSACTION;
+INSERT INTO Cart VALUES (1, 'Keyboard', 999.00);
+SAVEPOINT product_added;
+INSERT INTO Cart VALUES (2, 'Mouse', 499.00);
+ROLLBACK TO SAVEPOINT product_added;
+COMMIT;
+
+SELECT * FROM Cart;
+
+4.
+Write a trigger on a Wallet table that automatically deducts the purchase amount from the user's balance whenever a new transaction is inserted, similar to how Paytm updates wallet balance after a payment.
+
+CREATE TABLE Wallet (user_id INT PRIMARY KEY,user_name VARCHAR(100),balance DECIMAL(10,2)) ENGINE = InnoDB;
+
+CREATE TABLE WalletTransactions (transaction_id INT PRIMARY KEY,user_id INT,amount DECIMAL(10,2),transaction_type VARCHAR(20)) ENGINE = InnoDB;
+INSERT INTO Wallet VALUES (1, 'Manan', 5000.00);
+
+DELIMITER $$
+
+CREATE TRIGGER deduct_wallet_balance
+AFTER INSERT ON WalletTransactions
+FOR EACH ROW
+BEGIN
+    IF NEW.transaction_type = 'purchase' THEN
+        UPDATE Wallet
+        SET balance = balance - NEW.amount
+        WHERE user_id = NEW.user_id;
+    END IF;
+END $$
+DELIMITER ;
+
+
+INSERT INTO WalletTransactions
+VALUES (101, 1, 1200.00, 'purchase');
+
+SELECT * FROM Wallet;
+
+5.
+Use ChatGPT to generate a SQL test scenario where a trigger incorrectly updates a user's balance after an expense entry. Paste the scenario and your corrected trigger code, explaining how you fixed the error.<br><br><em><strong>Hint:</strong> Ask ChatGPT for a buggy trigger example and a test case that exposes the bug.</em>
+
+
+A.	Buggy trigger example
+
+DELIMITER $$
+
+CREATE TRIGGER buggy_wallet_trigger
+AFTER INSERT ON WalletTransactions
+FOR EACH ROW
+BEGIN
+    UPDATE Wallet
+    SET balance = balance - NEW.amount
+    WHERE user_id = NEW.user_id;
+
+    UPDATE Wallet
+    SET balance = balance - NEW.amount
+    WHERE user_id = NEW.user_id;
+END $$
+
+DELIMITER ;
+
+
+The bug: The trigger deducts the purchase amount twice.
+
+INSERT INTO WalletTransactions
+VALUES (102, 1, 500.00, 'purchase');
+
+SELECT * FROM Wallet WHERE user_id = 1;
+
+B.	Corrected trigger
+DROP TRIGGER IF EXISTS buggy_wallet_trigger;
+
+DELIMITER $$
+
+CREATE TRIGGER correct_wallet_trigger
+AFTER INSERT ON WalletTransactions
+FOR EACH ROW
+BEGIN
+    IF NEW.transaction_type = 'purchase'
+       AND NEW.amount > 0 THEN
+
+        UPDATE Wallet
+        SET balance = balance - NEW.amount
+        WHERE user_id = NEW.user_id;
+
+    END IF;
+END $$
+
+DELIMITER ;
+
+
+
+C. Explanation of the correction
+1.	Removed the duplicate UPDATE statement so the purchase amount is deducted only once.
+2.	Added a condition to process only purchase transactions with a positive amount.
+3.	Kept the update restricted to the matching user_id.
+Additional improvement: For a real wallet system, validate sufficient balance and reject invalid purchases using a BEFORE INSERT trigger with SIGNAL SQLSTATE '45000'. Otherwise, this corrected example can still allow a negative wallet balance.
+
+
+
