@@ -1,0 +1,13 @@
+Session 8: Introduction to PL/SQLTrainer Coverage:PL/SQL block structure (DECLARE, BEGIN, EXCEPTION, END).Variables and cursors.Control structures (IF, LOOP).Demo: Simple stored procedure to calculate user’s total spend.Pending
+Tasks
+1.
+Write a PL/SQL block that declares two variables: one for a user's name (VARCHAR2) and one for their age (NUMBER). Assign values and print both using DBMS_OUTPUT.PUT_LINE.
+2.
+Create a PL/SQL block that uses an IF statement to check if a given order amount is above 500. If yes, print 'Eligible for free delivery', else print 'Delivery charges apply'.
+3.
+Write a PL/SQL block that uses a simple LOOP to print the numbers 1 to 5 using DBMS_OUTPUT.PUT_LINE.<br><br><em><strong>Hint:</strong> Use a counter variable and EXIT WHEN condition inside the loop.</em>
+4.
+Declare a cursor in PL/SQL to select all product names from a table called PRODUCTS. Fetch each product name and print it using DBMS_OUTPUT.PUT_LINE.<br><br><em><strong>Hint:</strong> Assume the PRODUCTS table has a column PRODUCT_NAME.</em>
+5.
+Write a PL/SQL block that tries to divide two numbers entered as variables. If a division by zero occurs, catch the exception and print 'Cannot divide by zero'. Otherwise, print the result.
+
