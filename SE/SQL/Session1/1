@@ -1,0 +1,25 @@
+Session 1: Introduction to DatabasesTrainer Coverage:What is a database, DBMS, RDBMS (with examples).Difference between MySQL, PostgreSQL, Oracle, SQLite.Tables, rows, columns, and relationships.Demo: Show data stored in MySQL Workbench.Pending
+Tasks
+1.
+Install MySQL Workbench on your computer, connect to the local MySQL server, and take a screenshot of the default databases shown in the Schemas panel.
+2.
+Create a new database called InstaClone in MySQL Workbench, then create a table named Users with columns: user_id (INT, primary key), username (VARCHAR), email (VARCHAR), and followers_count (INT).
+
+CREATE DATABASE InstaClone;
+CREATE TABLE Users(user_id INT PRIMARY KEY,username VARCHAR(50),email VARCHAR(100),followers_count INT);
+
+3.
+Insert 3 sample users into the Users table you created, using realistic Instagram-style usernames and follower counts.
+
+insert into users (user_id,username,email,followers_count)VALUES (1,'manan','m@gmail.com',1035),(2,'yash','y@gmail.com',2000),(3,'mihir','mihir@gmail.com',10000);
+
+4.
+Create another table in the InstaClone database called Posts with columns: post_id (INT, primary key), user_id (INT), caption (VARCHAR), and post_date (DATE). Add a foreign key from Posts.user_id to Users.user_id to establish a relationship.
+
+CREATE TABLE Posts(post_id int PRIMARY KEY,user_id int,caption varchar(250),post_date date,FOREIGN KEY (user_id) REFERENCES users(user_id));
+
+5.
+Write a short comparison (3-4 lines each) of MySQL, PostgreSQL, Oracle, and SQLite, focusing on where each one is commonly used (for example: web apps, mobile apps, enterprise systems, etc.).
+
+
+
