@@ -1,0 +1,39 @@
+Mini Project 3 – “Expense Tracker DB”Description:Design the backend for a Personal Expense Tracker App.Create users, transactions, and categories tables.Write SQL scripts for CRUD operations.Add a stored procedure for monthly summary generation.Trainer Deliverables:Students should submit .sql file with queries.Test queries via MySQL Workbench live.Pending
+Tasks
+1.
+Create a MySQL table called playlists to store Spotify-style music playlists, with columns: playlist_id (primary key), user_id (foreign key), name (varchar), and created_at (datetime). Write the CREATE TABLE statement.
+
+CREATE TABLE playlists (playlist_id INT PRIMARY KEY AUTO_INCREMENT,user_id INT,name VARCHAR(100) NOT NULL,created_at DATETIME DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY (user_id) REFERENCES users(user_id));
+
+2.
+Insert three sample records into the playlists table: one for a user with a 'Workout Mix', one with a 'Chill Vibes', and one with a 'Top Hits' playlist. Use realistic data for each field.
+
+INSERT INTO playlists (user_id, name, created_at)VALUES(1, 'Workout Mix', '2026-10-01 08:30:00'),(2, 'Chill Vibes', '2026-10-05 19:15:00'),(1, 'Top Hits', '2026-10-10 12:00:00');
+
+3.
+Write an SQL UPDATE statement to rename the 'Chill Vibes' playlist to 'Evening Chill' for a specific user_id.
+
+UPDATE playlists SET name = 'Evening Chill' WHERE name = 'Chill Vibes' AND user_id = 2;
+
+4.
+Write a DELETE statement to remove a playlist named 'Workout Mix' for a given user_id from the playlists table.<br><br><em><strong>Hint:</strong> Make sure your WHERE clause targets only the intended row.</em>
+
+DELETE FROM playlists WHERE name = 'Workout Mix' AND user_id = 1;
+
+5.
+Create a stored procedure named GetMonthlyPlaylistCount that takes a user_id and a month (as an integer) as input, and returns the total number of playlists the user created in that month.<br><br><em><strong>Hint:</strong> Use the MONTH() function in your WHERE clause.</em>
+
+DELIMITER $$
+
+CREATE PROCEDURE GetMonthlyPlaylistCount(
+    IN p_user_id INT,
+    IN p_month INT
+)
+BEGIN
+    SELECT COUNT(*) AS total_playlists
+    FROM playlists
+    WHERE user_id = p_user_id
+      AND MONTH(created_at) = p_month;
+END $$
+
+DELIMITER ;
